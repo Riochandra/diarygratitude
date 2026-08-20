@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232c2416'/><rect x='28' y='18' width='44' height='58' rx='4' fill='%23f5f0e8'/><rect x='28' y='18' width='10' height='58' rx='2' fill='%23c4956a'/><line x1='38' y1='35' x2='62' y2='35' stroke='%23d6c9b0' stroke-width='3' stroke-linecap='round'/><line x1='38' y1='45' x2='62' y2='45' stroke='%23d6c9b0' stroke-width='3' stroke-linecap='round'/><line x1='38' y1='55' x2='55' y2='55' stroke='%23d6c9b0' stroke-width='3' stroke-linecap='round'/></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Diary</title>
+<script type="module">
+  // ---- Firebase (modular v10 SDK via CDN) ----
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithCustomToken, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, getDocs, collection, query, where, serverTimestamp, writeBatch
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // TODO: ganti dengan config Firebase project kamu sendiri
+  // (Firebase Console > Project Settings > General > Your apps > Web app > SDK setup and configuration)
+const firebaseConfig = {
+  apiKey: "AIzaSyBuV6A56NEayoHsjNaR_8_bIaKS3PDsIdY",
+  authDomain: "diarydaily-79e0b.firebaseapp.com",
+  projectId: "diarydaily-79e0b",
+  storageBucket: "diarydaily-79e0b.firebasestorage.app",
+  messagingSenderId: "317968000326",
+  appId: "1:317968000326:web:28c1ae1d76dbad85977147"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Expose ke script utama (non-module) di bawah lewat window
+  window.__fb = {
+    auth, db,
+    signInWithCustomToken, signOut, onAuthStateChanged,
+    doc, setDoc, getDocs, collection, query, where, serverTimestamp, writeBatch
+  };
+  window.__fbReady = true;
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --surface: #fffdf8;
+    --surface2: #f9f4ec;
+    --border: #d6c9b0;
+    --border2: #c2b49a;
+    --text: #2c2416;
+    --text2: #7a6a52;
+    --text3: #a8957a;
+    --accent: #8b5e3c;
+    --accent2: #c4956a;
+    --header-bg: #2c2416;
+    --header-text: #f5f0e8;
+    --day-label: #6b5a42;
+    --toolbar-bg: #f0ead8;
+    --editor-bg: #fffdf8;
+    --shadow: rgba(44,36,22,0.12);
+    --btn-hover: #e8e0cc;
+    --toggle-bg: #d6c9b0;
+    --date-num: #2c2416;
+    --font-serif: Tahoma, sans-serif;
+    --font-body: Tahoma, sans-serif;
+  }
+
+  body.dark {
+    --bg: #1a1610;
+    --surface: #242018;
+    --surface2: #1e1a14;
+    --border: #3d3428;
+    --border2: #4e4330;
+    --text: #e8dfc8;
+    --text2: #9e8f72;
+    --text3: #6b5e48;
+    --accent: #c4956a;
+    --accent2: #8b5e3c;
+    --header-bg: #0f0d08;
+    --header-text: #e8dfc8;
+    --day-label: #9e8f72;
+    --toolbar-bg: #2a2418;
+    --editor-bg: #1e1a14;
+    --shadow: rgba(0,0,0,0.4);
+    --btn-hover: #332c1e;
+    --toggle-bg: #3d3428;
+    --date-num: #e8dfc8;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  header {
+    background: var(--header-bg);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .brand {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    color: var(--header-text);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+
+  .brand span {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--accent2);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .theme-toggle {
+    width: 44px;
+    height: 24px;
+    background: var(--toggle-bg);
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    border: none;
+    transition: background 0.3s;
+  }
+
+  .theme-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: transform 0.3s;
+  }
+
+  body.dark .theme-toggle::after {
+    transform: translateX(20px);
+  }
+
+  .theme-icon {
+    font-size: 14px;
+    color: var(--header-text);
+    opacity: 0.6;
+    user-select: none;
+  }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem 2rem 1rem;
+  }
+
+  .nav-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .nav-btn:hover {
+    background: var(--btn-hover);
+    border-color: var(--border2);
+  }
+
+  .month-title {
+    font-family: var(--font-serif);
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 240px;
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+
+  .days-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  .day-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .day-name {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--day-label);
+  }
+
+  .day-num {
+    font-family: var(--font-serif);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--date-num);
+    line-height: 1;
+  }
+
+  .day-num.today { color: var(--accent); }
+
+  .today-badge {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    margin-left: 4px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--toolbar-bg);
+    flex-wrap: wrap;
+  }
+
+  .tool-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .tool-btn:hover { background: var(--btn-hover); color: var(--text); }
+  .tool-btn.active { background: var(--accent); color: #fff; }
+
+  .tool-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+
+  .color-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+
+  .color-btn:hover, .color-btn.active-color {
+    transform: scale(1.25);
+    border-color: var(--border2);
+  }
+
+  .editor-area {
+    min-height: 140px;
+    padding: 16px 20px;
+    outline: none;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--text);
+    background: var(--editor-bg);
+    caret-color: var(--accent);
+  }
+
+  .editor-area:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text3);
+    font-style: italic;
+    pointer-events: none;
+  }
+
+  .char-count {
+    padding: 6px 20px;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: right;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-body);
+    letter-spacing: 0.03em;
+  }
+
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 1.5rem 2rem;
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--font-body);
+    max-width: 860px;
+    margin: 0 auto;
+    letter-spacing: 0.03em;
+  }
+
+  .save-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #7bc67e;
+    display: inline-block;
+  }
+
+  .italic-i { font-style: italic; }
+  .strike-s { text-decoration: line-through; }
+
+.float-toolbar {
+  position: fixed;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 16px var(--shadow);
+  z-index: 9999;
+}
+
+.float-toolbar.visible { display: flex; }
+
+.img-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-settings-overlay.visible { display: flex; }
+
+.img-settings-modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 24px 28px;
+  width: 300px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  font-family: var(--font-body);
+}
+
+.img-settings-modal h3 {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 18px;
+}
+
+.img-settings-row {
+  margin-bottom: 16px;
+}
+
+.img-settings-row label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+
+.img-settings-row select,
+.img-settings-row input[type=range] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.img-settings-row input[type=range] {
+  padding: 4px 0;
+  accent-color: var(--accent);
+}
+
+.img-settings-row .range-val {
+  font-size: 12px;
+  color: var(--accent);
+  float: right;
+  margin-top: -6px;
+}
+
+.img-settings-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.img-settings-actions button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+.img-settings-confirm {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent) !important;
+}
+
+.img-settings-cancel {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-overlay.hidden { display: none; }
+
+.pin-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 32px 28px;
+  width: 300px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  font-family: var(--font-body);
+  text-align: center;
+}
+
+.pin-box h2 {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.pin-box p {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 18px;
+}
+
+.pin-box input {
+  width: 100%;
+  text-align: center;
+  letter-spacing: 0.3em;
+  font-size: 18px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.pin-box button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pin-box button:disabled { opacity: 0.6; cursor: default; }
+
+.pin-error {
+  font-size: 12px;
+  color: #c0392b;
+  min-height: 16px;
+  margin-bottom: 8px;
+}
+
+.app-shell.locked { display: none; }
+</style>
+</head>
+<body>
+
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <h2>🔒 Daily Diary</h2>
+    <p>Masukkan PIN untuk membuka diary kamu</p>
+    <input type="password" id="pinInput" inputmode="numeric" maxlength="12" placeholder="••••••" autofocus>
+    <div class="pin-error" id="pinError"></div>
+    <button id="pinSubmit">Buka</button>
+  </div>
+</div>
+
+<div class="app-shell locked" id="appShell">
+<div class="float-toolbar" id="floatToolbar">
+  <button class="tool-btn" data-fcmd="bold" title="Bold"><b>B</b></button>
+  <button class="tool-btn italic-i" data-fcmd="italic" title="Italic">I</button>
+  <button class="tool-btn strike-s" data-fcmd="strikeThrough" title="Strikethrough">S</button>
+  <div class="tool-sep"></div>
+  <button class="color-btn" style="background:#2c2416" data-fcolor="#2c2416"></button>
+  <button class="color-btn" style="background:#c0392b" data-fcolor="#c0392b"></button>
+  <button class="color-btn" style="background:#2980b9" data-fcolor="#2980b9"></button>
+  <button class="color-btn" style="background:#27ae60" data-fcolor="#27ae60"></button>
+  <button class="color-btn" style="background:#8e44ad" data-fcolor="#8e44ad"></button>
+  <button class="color-btn" style="background:#e67e22" data-fcolor="#e67e22"></button>
+  <button class="color-btn" style="background:#e91e8c" data-fcolor="#e91e8c"></button>
+</div>
+<header>
+  <div class="brand"><span>Daily</span> Diary</div>
+  <div class="header-right">
+    <span class="theme-icon">☀</span>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode"></button>
+    <span class="theme-icon">☾</span>
+    <button class="nav-btn" id="exportBtn" style="font-size:12px; padding:6px 14px;">↓ Export</button>
+    <button class="nav-btn" id="importBtn" style="font-size:12px; padding:6px 14px;">↑ Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none;">
+    <button class="nav-btn" id="lockBtn" style="font-size:12px; padding:6px 14px;">🔒 Lock</button>
+  </div>
+</header>
+
+<div class="month-nav">
+  <button class="nav-btn" id="prevBtn">← Prev</button>
+  <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+    <div class="month-title" id="monthTitle"></div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <select id="monthSelect" class="nav-btn" style="cursor:pointer;">
+        <option>January</option><option>February</option><option>March</option>
+        <option>April</option><option>May</option><option>June</option>
+        <option>July</option><option>August</option><option>September</option>
+        <option>October</option><option>November</option><option>December</option>
+      </select>
+      <select id="yearSelect" class="nav-btn" style="cursor:pointer;"></select>
+    </div>
+  </div>
+  <button class="nav-btn" id="nextBtn">Next →</button>
+</div>
+
+<div class="days-container" id="daysContainer"></div>
+
+<div class="bottom-bar">
+  <div class="save-indicator"><span class="dot" id="saveDot"></span> <span id="saveStatus">Synced to cloud</span></div>
+  <div id="entryCount"></div>
+</div>
+
+</div><!-- /.app-shell -->
+
+<script>
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const COLORS = ['#2c2416','#c0392b','#2980b9','#27ae60','#8e44ad','#e67e22','#e91e8c'];
+const COLOR_NAMES = ['default','red','blue','green','purple','orange','pink'];
+const PLACEHOLDERS = [
+  "What's on your mind today?",
+  "How are you feeling today?",
+  "What happened today?",
+  "Your thoughts for today...",
+  "Write freely here..."
+];
+
+const now = new Date();
+let viewYear = now.getFullYear();
+let viewMonth = now.getMonth();
+
+// day -> HTML content for the month currently being viewed (populated by one Firestore query)
+let monthEntryCache = {};
+// debounce timers per entry id
+const saveTimers = {};
+
+function entryId(y, m, d) { return `${y}_${m + 1}_${d}`; }
+function monthKeyOf(y, m) { return `${y}-${String(m + 1).padStart(2, '0')}`; }
+function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+function isToday(y, m, d) {
+  return y === now.getFullYear() && m === now.getMonth() && d === now.getDate();
+}
+
+function setSaveStatus(text, ok = true) {
+  const dot = document.getElementById('saveDot');
+  const label = document.getElementById('saveStatus');
+  if (label) label.textContent = text;
+  if (dot) dot.style.background = ok ? '#7bc67e' : '#e0a83a';
+}
+
+// ---------- Firestore: load / save ----------
+
+async function loadMonthEntries(year, month) {
+  const { db, getDocs, collection, query, where } = window.__fb;
+  const map = {};
+  try {
+    const q = query(collection(db, 'entries'), where('yearMonth', '==', monthKeyOf(year, month)));
+    const snap = await getDocs(q);
+    snap.forEach(d => {
+      const data = d.data();
+      const parts = d.id.split('_'); // y_m_d
+      const day = parseInt(parts[2], 10);
+      if (!Number.isNaN(day)) map[day] = data.content || '';
+    });
+  } catch (err) {
+    console.error('Gagal memuat entri bulan ini:', err);
+    setSaveStatus('Gagal memuat data', false);
+  }
+  return map;
+}
+
+function scheduleSave(id, year, month, html) {
+  setSaveStatus('Menyimpan...', false);
+  clearTimeout(saveTimers[id]);
+  saveTimers[id] = setTimeout(() => saveEntryNow(id, year, month, html), 600);
+}
+
+async function saveEntryNow(id, year, month, html) {
+  const { db, doc, setDoc, serverTimestamp } = window.__fb;
+  try {
+    await setDoc(doc(db, 'entries', id), {
+      content: html,
+      yearMonth: monthKeyOf(year, month),
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    setSaveStatus('Synced to cloud', true);
+  } catch (err) {
+    console.error('Gagal menyimpan entri:', err);
+    setSaveStatus('Gagal menyimpan — cek koneksi', false);
+  }
+}
+
+// ---------- Card rendering ----------
+
+function createCard(year, month, day) {
+  const date = new Date(year, month, day);
+  const dayName = DAYS[date.getDay()];
+  const today = isToday(year, month, day);
+  const id = entryId(year, month, day);
+  const saved = monthEntryCache[day] || '';
+  const placeholder = PLACEHOLDERS[day % PLACEHOLDERS.length];
+
+  const card = document.createElement('div');
+  card.className = 'day-card';
+  card.id = `day-${day}`;
+
+  card.innerHTML = `
+    <div class="day-header">
+      <span class="day-name">${dayName}</span>
+      <span class="day-num${today ? ' today' : ''}">${day}</span>
+      ${today ? '<span class="today-badge">today</span>' : ''}
+    </div>
+    <div class="toolbar">
+      <button class="tool-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+      <button class="tool-btn italic-i" data-cmd="italic" title="Italic">I</button>
+      <button class="tool-btn strike-s" data-cmd="strikeThrough" title="Strikethrough">S</button>
+      <div class="tool-sep"></div>
+      ${COLORS.map((c,i) => `<button class="color-btn" style="background:${c}" data-color="${c}" title="${COLOR_NAMES[i]}"></button>`).join('')}
+    </div>
+    <div class="editor-area" contenteditable="true" data-placeholder="${placeholder}" spellcheck="false">${saved}</div>
+    <div class="char-count"><span class="wc">0</span> words</div>
+  `;
+
+  const editor = card.querySelector('.editor-area');
+  const wc = card.querySelector('.wc');
+
+  function countWords() {
+    const t = editor.innerText.trim();
+    wc.textContent = t ? t.split(/\s+/).length : 0;
+  }
+  if (saved) countWords();
+
+  editor.addEventListener('input', () => {
+    countWords();
+    scheduleSave(id, year, month, editor.innerHTML);
+  });
+
+  editor.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b' || e.key === 'B') { e.preventDefault(); document.execCommand('bold', false, null); updateStates(card); }
+      if (e.key === 'i' || e.key === 'I') { e.preventDefault(); document.execCommand('italic', false, null); updateStates(card); }
+      if (e.key === 'u' || e.key === 'U') { e.preventDefault(); document.execCommand('underline', false, null); updateStates(card); }
+    }
+  });
+
+  editor.addEventListener('focus', () => { editor.spellcheck = true; });
+  editor.addEventListener('blur', () => { editor.spellcheck = false; });
+
+  card.querySelectorAll('.tool-btn').forEach(btn => {
+    if (!btn.dataset.cmd) return;
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      editor.focus();
+      document.execCommand(btn.dataset.cmd, false, null);
+      updateStates(card);
+    });
+  });
+
+  // Paste: plain text only. Images pasted from clipboard are intentionally
+  // ignored — this app is text-only, no image storage involved.
+  editor.addEventListener('paste', (e) => {
+    const text = e.clipboardData.getData('text/plain').trim();
+    const urlPattern = /^(https?:\/\/)[^\s]+$/;
+    if (urlPattern.test(text)) {
+      e.preventDefault();
+      const a = document.createElement('a');
+      a.href = text; a.textContent = text; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.style.color = 'var(--accent)';
+      const sel = window.getSelection();
+      if (sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(a);
+        range.setStartAfter(a);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        editor.appendChild(a);
+      }
+      scheduleSave(id, year, month, editor.innerHTML);
+    }
+  });
+
+  card.querySelectorAll('.color-btn').forEach(btn => {
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      editor.focus();
+      if (window.getSelection().toString().length > 0) {
+        document.execCommand('foreColor', false, btn.dataset.color);
+      }
+      card.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active-color'));
+      btn.classList.add('active-color');
+    });
+  });
+
+  editor.addEventListener('keyup', () => updateStates(card));
+  editor.addEventListener('mouseup', () => updateStates(card));
+
+  return card;
+}
+
+function updateStates(card) {
+  card.querySelectorAll('.tool-btn').forEach(btn => {
+    try { btn.classList.toggle('active', document.queryCommandState(btn.dataset.cmd)); } catch(e){}
+  });
+}
+
+async function render() {
+  document.getElementById('monthSelect').value = MONTHS[viewMonth];
+  document.getElementById('yearSelect').value = viewYear;
+  setSaveStatus('Memuat...', false);
+  monthEntryCache = await loadMonthEntries(viewYear, viewMonth);
+
+  const container = document.getElementById('daysContainer');
+  container.innerHTML = '';
+  const days = daysInMonth(viewYear, viewMonth);
+  let count = 0;
+  for (let d = 1; d <= days; d++) {
+    if (monthEntryCache[d]) count++;
+    container.appendChild(createCard(viewYear, viewMonth, d));
+  }
+  document.getElementById('monthTitle').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+  document.getElementById('entryCount').textContent = count ? `${count} entr${count > 1 ? 'ies' : 'y'} this month` : '';
+  setSaveStatus('Synced to cloud', true);
+
+  if (isToday(viewYear, viewMonth, now.getDate())) {
+    setTimeout(() => {
+      const todayCard = document.getElementById(`day-${now.getDate()}`);
+      if (todayCard) todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  }
+}
+
+const yearSelect = document.getElementById('yearSelect');
+for (let y = 2026; y <= 2035; y++) {
+  const opt = document.createElement('option');
+  opt.value = y; opt.textContent = y;
+  yearSelect.appendChild(opt);
+}
+
+document.getElementById('monthSelect').addEventListener('change', (e) => {
+  viewMonth = MONTHS.indexOf(e.target.value);
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+document.getElementById('yearSelect').addEventListener('change', (e) => {
+  viewYear = parseInt(e.target.value);
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ---------- Export: pull every entry out of Firestore ----------
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const { db, getDocs, collection } = window.__fb;
+  setSaveStatus('Menyiapkan export...', false);
+  try {
+    const snap = await getDocs(collection(db, 'entries'));
+    const data = {};
+    snap.forEach(d => { data[`diary_${d.id}`] = d.data().content || ''; });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `diary_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    setSaveStatus('Synced to cloud', true);
+  } catch (err) {
+    console.error(err);
+    alert('Gagal export data.');
+    setSaveStatus('Export gagal', false);
+  }
+});
+
+// ---------- Import ----------
+// This app is text-only. Old backups may still contain base64 <img> tags
+// (from a previous version that supported photos) — those are stripped out
+// on import so nothing large ever lands in Firestore. Only the text content
+// is kept.
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+
+function stripImages(html) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  // Remove image wrapper spans (from the old rich editor) and any bare <img>
+  wrapper.querySelectorAll('.img-resize-wrap, img').forEach(el => el.remove());
+  return wrapper.innerHTML;
+}
+
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const { db, doc, setDoc, serverTimestamp } = window.__fb;
+    try {
+      const data = JSON.parse(ev.target.result);
+      let count = 0;
+      let imagesStripped = 0;
+      const entries = Object.entries(data).filter(([key]) => key.startsWith('diary_') && key !== 'diary_theme');
+      setSaveStatus(`Mengimpor 0/${entries.length}...`, false);
+      for (const [key, value] of entries) {
+        const id = key.replace(/^diary_/, ''); // y_m_d
+        const parts = id.split('_');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        if (Number.isNaN(y) || Number.isNaN(m)) continue;
+        const hadImage = /data:image|img-resize-wrap|<img/.test(value);
+        const cleanHtml = stripImages(value);
+        if (hadImage) imagesStripped++;
+        await setDoc(doc(db, 'entries', id), {
+          content: cleanHtml,
+          yearMonth: monthKeyOf(y, m),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        count++;
+        setSaveStatus(`Mengimpor ${count}/${entries.length}...`, false);
+      }
+      const note = imagesStripped > 0 ? ` (${imagesStripped} entry berisi gambar — gambarnya dibuang, teksnya tetap masuk.)` : '';
+      alert(`Imported ${count} entries successfully!${note}`);
+      setSaveStatus('Synced to cloud', true);
+      render();
+    } catch (err) {
+      console.error(err);
+      alert('Could not read file. Make sure it is a valid diary backup.');
+      setSaveStatus('Import gagal', false);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('diary_theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+});
+
+if (localStorage.getItem('diary_theme') === 'dark') document.body.classList.add('dark');
+
+const floatToolbar = document.getElementById('floatToolbar');
+floatToolbar.addEventListener('mousedown', (e) => { e.preventDefault(); });
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+    floatToolbar.classList.remove('visible');
+    return;
+  }
+  const anchor = sel.anchorNode;
+  if (!anchor) { floatToolbar.classList.remove('visible'); return; }
+  const editorEl = anchor.nodeType === 3
+    ? anchor.parentElement.closest('.editor-area')
+    : anchor.closest && anchor.closest('.editor-area');
+  if (!editorEl) { floatToolbar.classList.remove('visible'); return; }
+
+  try {
+    const range = sel.getRangeAt(0);
+    const rects = range.getClientRects();
+    if (!rects || rects.length === 0) return;
+    const rect = rects[rects.length - 1];
+    const tbWidth = 290;
+    let left = rect.left + (rect.width / 2) - (tbWidth / 2);
+    left = Math.max(8, Math.min(left, window.innerWidth - tbWidth - 8));
+    let top = rect.top - 52 + window.scrollY;
+    if (top < window.scrollY + 8) top = rect.bottom + window.scrollY + 8;
+    floatToolbar.style.left = left + 'px';
+    floatToolbar.style.top = top + 'px';
+    floatToolbar.classList.add('visible');
+  } catch(e) {
+    floatToolbar.classList.remove('visible');
+  }
+});
+
+floatToolbar.querySelectorAll('[data-fcmd]').forEach(btn => {
+  btn.addEventListener('mousedown', (e) => { e.preventDefault(); document.execCommand(btn.dataset.fcmd, false, null); });
+});
+
+floatToolbar.querySelectorAll('[data-fcolor]').forEach(btn => {
+  btn.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    document.execCommand('foreColor', false, btn.dataset.fcolor);
+    floatToolbar.classList.remove('visible');
+  });
+});
+
+// ---------- PIN gate ----------
+
+function showApp() {
+  document.getElementById('pinOverlay').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('locked');
+  render();
+}
+
+function showPinScreen() {
+  document.getElementById('appShell').classList.add('locked');
+  document.getElementById('pinOverlay').classList.remove('hidden');
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinInput').focus();
+}
+
+async function submitPin() {
+  const pinInput = document.getElementById('pinInput');
+  const pinError = document.getElementById('pinError');
+  const submitBtn = document.getElementById('pinSubmit');
+  const pin = pinInput.value.trim();
+  if (!pin) return;
+  submitBtn.disabled = true;
+  pinError.textContent = '';
+  try {
+    const res = await fetch('/api/verify-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin })
+    });
+    const result = await res.json();
+    if (!res.ok || !result.token) {
+      pinError.textContent = result.error || 'PIN salah, coba lagi.';
+      submitBtn.disabled = false;
+      return;
+    }
+    await window.__fb.signInWithCustomToken(window.__fb.auth, result.token);
+    // onAuthStateChanged listener below will call showApp()
+  } catch (err) {
+    console.error(err);
+    pinError.textContent = 'Gagal terhubung ke server. Coba lagi.';
+    submitBtn.disabled = false;
+  }
+}
+
+function initAuthGate() {
+  document.getElementById('pinSubmit').addEventListener('click', submitPin);
+  document.getElementById('pinInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitPin();
+  });
+  document.getElementById('lockBtn').addEventListener('click', async () => {
+    await window.__fb.signOut(window.__fb.auth);
+  });
+
+  window.__fb.onAuthStateChanged(window.__fb.auth, (user) => {
+    document.getElementById('pinSubmit').disabled = false;
+    if (user) {
+      showApp();
+    } else {
+      showPinScreen();
+    }
+  });
+}
+
+function start() {
+  initAuthGate();
+}
+
+if (window.__fbReady) {
+  start();
+} else {
+  window.addEventListener('fb-ready', start);
+}
+
+</script>
+</body>
+</html>

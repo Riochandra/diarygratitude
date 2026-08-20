@@ -1,0 +1,9 @@
+{
+  "name": "daily-diary-firebase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily Diary (text-only) — static HTML app with Firestore backend, PIN-gated, deployed on Vercel.",
+  "dependencies": {
+    "firebase-admin": "^12.3.1"
+  }
+}
