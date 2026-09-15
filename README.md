@@ -1,4 +1,4 @@
-# Daily Diary — Firestore + Vercel (Teks-only, tanpa gambar)
+# Daily Gratitude — Firestore + Vercel (Teks-only, tanpa gambar)
 
 Versi ini **tidak punya fitur gambar sama sekali** — murni teks (bold, italic,
 strikethrough, warna, link). Tidak ada Firebase Storage, tidak ada upload
