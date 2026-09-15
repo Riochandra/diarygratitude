@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232c2416'/><rect x='28' y='18' width='44' height='58' rx='4' fill='%23f5f0e8'/><rect x='28' y='18' width='10' height='58' rx='2' fill='%23c4956a'/><line x1='38' y1='35' x2='62' y2='35' stroke='%23d6c9b0' stroke-width='3' stroke-linecap='round'/><line x1='38' y1='45' x2='62' y2='45' stroke='%23d6c9b0' stroke-width='3' stroke-linecap='round'/><line x1='38' y1='55' x2='55' y2='55' stroke='%23d6c9b0' stroke-width='3' stroke-linecap='round'/></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily Diary</title>
+<title>Daily Gratitude</title>
 <script type="module">
   // ---- Firebase (modular v10 SDK via CDN) ----
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -551,11 +551,11 @@ const firebaseConfig = {
 
 <div class="pin-overlay" id="pinOverlay">
   <div class="pin-box">
-    <h2>🔒 Daily Diary</h2>
-    <p>Masukkan PIN untuk membuka diary kamu</p>
+    <h2>🔒 Daily Gratitude</h2>
+    <p>Type your PIN to enter</p>
     <input type="password" id="pinInput" inputmode="numeric" maxlength="12" placeholder="••••••" autofocus>
     <div class="pin-error" id="pinError"></div>
-    <button id="pinSubmit">Buka</button>
+    <button id="pinSubmit">Open</button>
   </div>
 </div>
 
@@ -574,7 +574,7 @@ const firebaseConfig = {
   <button class="color-btn" style="background:#e91e8c" data-fcolor="#e91e8c"></button>
 </div>
 <header>
-  <div class="brand"><span>Daily</span> Diary</div>
+  <div class="brand"><span>Daily</span> Gratitude</div>
   <div class="header-right">
     <span class="theme-icon">☀</span>
     <button class="theme-toggle" id="themeToggle" title="Toggle dark mode"></button>
